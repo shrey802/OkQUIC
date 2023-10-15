@@ -1,3 +1,3 @@
 # OkQUIC
 
-this is the repo of my university project based on QUIC protocol by Google. So basically we're trying to reduce latency for content gathered by QUIC protocol for users.
+this is the repo of my university project based on QUIC protocol by Google. Client, Server code added using aioquic in python.
