@@ -1,0 +1,6 @@
+# .gitignore
+
+# Ignore certificate and private key files
+*.crt
+*.key
+*.pem
