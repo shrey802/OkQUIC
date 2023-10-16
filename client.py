@@ -270,7 +270,7 @@ def main():
         configuration.verify_mode = ssl.CERT_NONE
 
     # Open and read the data from the text file
-    with open("data.txt", "rb") as data_file:
+    with open("index.html", "rb") as data_file:
         data_to_send = data_file.read()
 
     for i in range(0, news):
