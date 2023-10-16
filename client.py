@@ -12,23 +12,27 @@ from aioquic.asyncio.client import connect
 from aioquic.quic.events import QuicEvent, StreamDataReceived
 from aioquic.quic.logger import QuicFileLogger
 
+# created a logger to log the msgs and it is called client
 logger = logging.getLogger("client")
 
+# unique id for each data query
 id = 0
+# keep track for no. of data queries
 dd = 0
+#  to store responses received from server
 server_reply = list()
 
 
 # Define how the client should work. Inherits from QuicConnectionProtocol.
 # Override QuicEvent
-
-
+#
 class MyClient(QuicConnectionProtocol):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._ack_waiter: Optional[asyncio.Future[None]] = None
         self.offset = 0
 
+# measure rtt and time between client and server
     def insert_timestamp(self, data, index):
         # inserting the offset,send time,index
         self.t1 = time.time()
@@ -43,14 +47,20 @@ class MyClient(QuicConnectionProtocol):
 
         query = data
         if isinstance(query, str):
+            # data conversion into bytes
             query = query.encode()
         stream_id = self._quic.get_next_available_stream_id()
+        # stream ID for current query is logged
         logger.debug(f"Next Stream ID will be : {stream_id}")
         query = self.insert_timestamp(query, index)
+        # data is sent
         self._quic.send_stream_data(stream_id, bytes(query), True)
+        # waiting for servers ack
         waiter = self._loop.create_future()
+
         self._ack_waiter = waiter
         self.transmit()
+        # returns servers ack
         return await asyncio.shield(waiter)
 
     # Define behavior when receiving a response from the server
@@ -243,33 +253,46 @@ def main():
     print("Client Started")
     args = parse("Parse client args")
     test_data = []
-    news = args.streamrange
+    news = 3
     querysize = args.querysize
+
     if args.quic_log:
         from aioquic.quic import configuration
         from aioquic.quic.logger import QuicFileLogger
         configuration.quic_logger = QuicFileLogger(args.quic_log)
+
     if args.secrets_log:
         from aioquic.quic import configuration
         configuration.secrets_log_file = open(args.secrets_log, "a")
+
     if args.insecure:
         from aioquic.quic import configuration
         configuration.verify_mode = ssl.CERT_NONE
 
+    # Open and read the data from the text file
+    with open("data.txt", "rb") as data_file:
+        data_to_send = data_file.read()
+
     for i in range(0, news):
-        q = randbytes(n=querysize)
-        test_data.append(q)
-    print("sending test data size of " + str(int(str(sys.getsizeof(test_data[0]))) / float(1 << 20)) + " MB")
+        test_data.append(data_to_send)
+
+    print(f"Sending test data size of {len(data_to_send) / (1 << 20):.2f} MB")
     k = quicconnectclient(args.host, args.port, args.verbose, args.maxdata, args.maxstreamdata, args.quic_log)
 
-    for i in test_data:
-        # print(i)
-        print("sending test data ", len(test_data), " times")
-        k.quic_obj.send_frame(i)
+    for i, data_chunk in enumerate(test_data):
+        print(f"Sending test data {len(test_data)} times - Stream {i + 1}")
+        k.quic_obj.send_frame(data_chunk)
         time.sleep(0.03)
+        # Log or print the data being sent
+        print(f"Data Sent on Stream {i + 1}:\n{data_chunk.decode('utf-8')}")
 
     k.quic_obj.client_close()
 
-
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
